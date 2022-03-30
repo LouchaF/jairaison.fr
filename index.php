@@ -5,6 +5,7 @@
   <title>Ilaréson</title>
 </head>
 <body>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
 <!------------------------------------------------------- RULES -------------------------------------------------->
 
 <h4> Welcome, juste quelques règles :
@@ -38,55 +39,58 @@ Tu spam pas la con de toi, le charabia de 3 km en H1 t oublie. Le site est publi
 
 
 <!-------------------------------------------------------- Image -------------------------------------------------->
-  <form enctype="multipart/form-data" action="img.php" method="post" name="changer"><!-- formulaire -->
+  <form enctype="multipart/form-data" method="post" name="changer"><!-- formulaire -->
      Image : <input type="file" name="image" accept="image/png, image/gif, image/jpg, image/jpeg"> <!-- importer -->
       <input value="Envoyer" type="submit" name='ok_save'> <!-- envoyer -->
   </form><!-- fin formulaire -->
-  <?php if(isset($_POST['ok_save'])) 
-        include('img.php');//insertion chemin dans bdd?>
+  <?php   if(isset($_POST['ok_save'])) {
+        $mysqli = mysqli_connect("localhost","","","");
+
+        if ($_FILES["image"]["error"] > 0)
+            echo "<font size = '5'>Erreur,pas de fichier choisi";
+
+        else
+        {
+          $file="img/".$_FILES["image"]["name"]; /* chemin */
+          move_uploaded_file($_FILES["image"]["tmp_name"], $file); /* enregistrement temporaire */
+
+          $nombre = count(glob("img/*")); /* nombre de fichiers dans le dossier img/ */
+          $ext = pathinfo($file,PATHINFO_EXTENSION);/* recup extension */
+          $nom = 'img/' . ($nombre++) . ".$ext";
+
+           rename($file, $nom); /* renomme l'ancien fichier avec le nouveau nom */
+
+
+
+          $sql="INSERT INTO entre(chemin) VALUES ('$nom')"; /* requête sql */
+          if (!mysqli_query($mysqli, $sql)) /* envoi requête */
+            die('Erreur: ' . $mysqli -> error);
+
+          }
+        $mysqli->close();
+      }?>
+
+
 <!-------------------------------------------------------- FIN IMAGE -------------------------------------------------->
 
 <br><br><br>
 <!-------------------------------------------------------- AFFICHAGE -------------------------------------------------->
-    <?php
-        $mysqli = mysqli_connect("localhost","","","");
-        $resultat1 = $mysqli->query("SELECT id,ligne,balise,lien,chemin FROM entre ORDER BY id DESC;");
-        while ($row = $resultat1->fetch_assoc() ) {// récupère ligne
-$id = $row['id'] . '- ';
-            if (empty($row['ligne'])){// si le texte est vide (donc ligne vide ou uniquement chemin rempli)
-                if(empty($row['chemin'])){//vérif si chemin est vide
-                  continue; // si ligne+chemin vide, on passe à la boucle suivante
-                }
-                else{//si ligne vide mais chemin rempli
-                  $img = $row['chemin'];// récupere chemin depuis la bdd
-                  echo "$id<img src=$img style='max-width : 80vh; max-height : 80vh;'> <br>"; //affiche l'image
-                }
-            }
-            else{// si la ligne est remplie
-              $b = $row['balise'];
-              $lien= $row['lien'];
-              $ligne= $row['ligne'];
-              if($b == "vide" && empty($lien)){/* si pas de balise et pas de lien */
-                echo  $id . $row['ligne'] . '<br>' ; 
-              }
-              elseif($b == "vide" && $lien == "Oui"){/* si pas de balise mais un lien */
-                echo "<a href=$ligne>$ligne</a><br>";
-              }
-              elseif($b != "vide" && empty($lien)){/* Si une balise et pas de lien */
-                echo "<$b>$ligne</$b>";
-              }
-              elseif($b != "vide" && $lien == "Oui"){/* Si une balise et un lien */
-                echo "<a href=$ligne><$b>$ligne</$b></a>";
-              }
-          }
-        }
+<div id='refresh'></div>
+<script>
+if ( window.history.replaceState ) {
+  window.history.replaceState( null, null, window.location.href );
+}
+function loadlink(){
+    $('#refresh').load('texte.php',function () {
+         $(this).unwrap();
+    });
+}
 
-
- ?>
+loadlink(); // execution dès le lancement de la page
+setInterval(function(){
+    loadlink() /* fonction qui tourne toutes les secondes */
+}, 1000);
+</script>
 <!-------------------------------------------------------- FIN AFFICHAGE -------------------------------------------------->
 </body>
 </html>
-
-
-
-
